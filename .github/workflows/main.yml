@@ -7,3 +7,7 @@ npm run build
 npx cap sync
 
 keytool -genkey -v -keystore my-fitness-journey-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-fitness-journey
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=my-fitness-journey
+storeFile=../my-fitness-journey-release-key.jks
