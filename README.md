@@ -1,4 +1,4 @@
-# My-Fitness-Journey
+
 
 npm install
 npx cap add android
