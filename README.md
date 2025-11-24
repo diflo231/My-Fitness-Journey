@@ -6,7 +6,7 @@ A mobile fitness tracking application to help you monitor your health and fitnes
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - npm (v6 or higher)
 
 ### Installation
@@ -61,6 +61,8 @@ keyPassword=YOUR_KEY_PASSWORD
 keyAlias=my-fitness-journey
 storeFile=../my-fitness-journey-release-key.jks
 ```
+
+⚠️ **Important:** Never commit `gradle.properties` with real passwords to version control. Add it to `.gitignore` or use environment variables instead.
 
 ## 🤝 Contributing
 
