@@ -7,7 +7,7 @@ A mobile fitness tracking application to help you monitor your health and fitnes
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- npm (v6 or higher)
+- npm (v8 or higher)
 
 ### Installation
 
