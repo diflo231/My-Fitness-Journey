@@ -1,0 +1,28 @@
+{
+  "name": "my-fitness-journey",
+  "version": "1.0.0",
+  "description": "A fitness tracking mobile application",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Build step - add your build command here'",
+    "test": "echo 'No tests specified yet'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diflo231/My-Fitness-Journey.git"
+  },
+  "keywords": [
+    "fitness",
+    "tracking",
+    "mobile",
+    "health"
+  ],
+  "author": "diflo231",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/diflo231/My-Fitness-Journey/issues"
+  },
+  "homepage": "https://github.com/diflo231/My-Fitness-Journey#readme",
+  "dependencies": {},
+  "devDependencies": {}
+}

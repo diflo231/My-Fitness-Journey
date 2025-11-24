@@ -1,13 +1,31 @@
-git clone https://github.com/diflo231/My-Fitness-Journey.git
-cd My-Fitness-Journey
-npm install
-npx cap add android
-npx cap update android
-npm run build
-npx cap sync
+name: CI/CD Pipeline
 
-keytool -genkey -v -keystore my-fitness-journey-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-fitness-journey
-storePassword=YOUR_KEYSTORE_PASSWORD
-keyPassword=YOUR_KEY_PASSWORD
-keyAlias=my-fitness-journey
-storeFile=../my-fitness-journey-release-key.jks
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Run build
+      run: npm run build
+      
+    - name: Run tests
+      run: npm test
+
