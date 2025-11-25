@@ -53,6 +53,18 @@ npx cap sync android
 
 To create a release AAB (Android App Bundle), you'll need to:
 
+#### Option 1: Use the Setup Script (Recommended)
+
+Run the helper script to generate and configure your keystore:
+
+```bash
+./setup-keystore.sh
+```
+
+This will guide you through creating a keystore and configuring it for AAB builds.
+
+#### Option 2: Manual Setup
+
 1. Generate a signing key:
 
 ```bash
@@ -68,7 +80,9 @@ keyAlias=my-fitness-journey
 keyPassword=your_key_password
 ```
 
-3. Build the AAB:
+#### Building the AAB
+
+Once configured, build the AAB:
 
 ```bash
 cd android
