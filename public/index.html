@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4CAF50">
+    <title>My Fitness Journey</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>My Fitness Journey</h1>
+        </header>
+        
+        <main class="main">
+            <section class="welcome">
+                <h2>Welcome to Your Fitness Journey</h2>
+                <p>Track your workouts, set goals, and achieve your fitness dreams!</p>
+            </section>
+            
+            <section class="stats">
+                <div class="stat-card">
+                    <span class="stat-number" id="workouts-count">0</span>
+                    <span class="stat-label">Workouts</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="days-active">0</span>
+                    <span class="stat-label">Days Active</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="goals-completed">0</span>
+                    <span class="stat-label">Goals Met</span>
+                </div>
+            </section>
+            
+            <section class="quick-actions">
+                <button class="action-btn primary" id="log-workout">
+                    Log Workout
+                </button>
+                <button class="action-btn secondary" id="view-progress">
+                    View Progress
+                </button>
+            </section>
+        </main>
+        
+        <footer class="footer">
+            <p>&copy; 2024 My Fitness Journey</p>
+        </footer>
+    </div>
+    
+    <script src="index.js"></script>
+</body>
+</html>
