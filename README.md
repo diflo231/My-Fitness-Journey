@@ -51,11 +51,47 @@ npx cap sync android
 
 ### Android Release Build
 
-To create a release build, you'll need to generate a signing key:
+To create a release AAB (Android App Bundle), you'll need to:
+
+#### Option 1: Use the Setup Script (Recommended)
+
+Run the helper script to generate and configure your keystore:
+
+```bash
+./setup-keystore.sh
+```
+
+This will guide you through creating a keystore and configuring it for AAB builds.
+
+#### Option 2: Manual Setup
+
+1. Generate a signing key:
 
 ```bash
 keytool -genkey -v -keystore my-fitness-journey-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-fitness-journey
 ```
+
+2. Create a `keystore.properties` file in the `android` directory:
+
+```properties
+storeFile=/path/to/my-fitness-journey-release-key.jks
+storePassword=your_store_password
+keyAlias=my-fitness-journey
+keyPassword=your_key_password
+```
+
+#### Building the AAB
+
+Once configured, build the AAB:
+
+```bash
+cd android
+./gradlew bundleRelease
+```
+
+The AAB will be generated at: `android/app/build/outputs/bundle/release/app-release.aab`
+
+**Note:** For CI/CD builds, the keystore and credentials should be stored as encrypted secrets.
 
 ## Project Structure
 
