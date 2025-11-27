@@ -18,12 +18,31 @@ android {
     }
     signingConfigs {
         release {
-            // Use debug keystore by default for easy local builds
-            // In CI/CD, these can be overridden with environment variables
-            storeFile file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "${System.properties['user.home']}/.android/debug.keystore")
-            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "android"
-            keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "androiddebugkey"
-            keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: "android"
+            // WARNING: Never use the debug keystore for production releases!
+            // The debug keystore is publicly known and insecure.
+            // For production, you MUST set the following environment variables:
+            // ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+
+            def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+            def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
+            if (keystorePath == null || keystorePassword == null || keyAlias == null || keyPassword == null) {
+                if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+                    throw new GradleException("Release build requires ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD environment variables to be set. Refusing to use debug keystore for release build.")
+                }
+                // For non-release builds, fall back to debug keystore for convenience
+                storeFile file("${System.properties['user.home']}/.android/debug.keystore")
+                storePassword "android"
+                keyAlias "androiddebugkey"
+                keyPassword "android"
+            } else {
+                storeFile file(keystorePath)
+                storePassword keystorePassword
+                keyAlias keyAlias
+                keyPassword keyPassword
+            }
         }
     }
     buildTypes {
