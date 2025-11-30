@@ -107,10 +107,10 @@ jobs:
         # ELF alignment checks for native libraries
         echo "=== ELF Alignment Checks ===" | tee -a verification-reports/verification-report.txt
 
-        # Count native libraries to avoid subshell variable scope issue
-        SO_FILES=$(find aab-contents -name "*.so" -type f 2>/dev/null)
-        if [ -n "$SO_FILES" ]; then
-          echo "$SO_FILES" | while read -r so_file; do
+        # Check for native libraries using process substitution
+        SO_COUNT=$(find aab-contents -name "*.so" -type f 2>/dev/null | wc -l)
+        if [ "$SO_COUNT" -gt 0 ]; then
+          while IFS= read -r -d '' so_file; do
             echo "Checking: $so_file" | tee -a verification-reports/verification-report.txt
 
             # Check ELF alignment using readelf
@@ -130,7 +130,7 @@ jobs:
             else
               echo "  ⚠️ readelf not available, skipping ELF alignment check" | tee -a verification-reports/verification-report.txt
             fi
-          done
+          done < <(find aab-contents -name "*.so" -type f -print0 2>/dev/null)
         else
           echo "No native libraries (.so files) found in AAB" | tee -a verification-reports/verification-report.txt
         fi
@@ -152,23 +152,26 @@ jobs:
           if [ -f "$UNIVERSAL_APK" ]; then
             # Use Android SDK zipalign if available
             if command -v zipalign &> /dev/null; then
-              if zipalign -c -v 4 "$UNIVERSAL_APK" 2>&1 | tail -5 | tee -a verification-reports/verification-report.txt; then
+              ZIPALIGN_CMD="zipalign"
+            else
+              # Try to find zipalign in Android SDK
+              ZIPALIGN_CMD=$(find "$ANDROID_HOME" -name "zipalign" -type f 2>/dev/null | head -1)
+            fi
+
+            if [ -n "$ZIPALIGN_CMD" ]; then
+              # Run zipalign and capture exit status properly
+              set +e
+              ZIPALIGN_OUTPUT=$("$ZIPALIGN_CMD" -c -v 4 "$UNIVERSAL_APK" 2>&1)
+              ZIPALIGN_EXIT_CODE=$?
+              set -e
+              echo "$ZIPALIGN_OUTPUT" | tail -5 | tee -a verification-reports/verification-report.txt
+              if [ "$ZIPALIGN_EXIT_CODE" -eq 0 ]; then
                 echo "✅ Zipalign verification passed" | tee -a verification-reports/verification-report.txt
               else
                 echo "❌ Zipalign verification failed" | tee -a verification-reports/verification-report.txt
               fi
             else
-              # Try to find zipalign in Android SDK
-              ZIPALIGN_PATH=$(find "$ANDROID_HOME" -name "zipalign" -type f 2>/dev/null | head -1)
-              if [ -n "$ZIPALIGN_PATH" ]; then
-                if "$ZIPALIGN_PATH" -c -v 4 "$UNIVERSAL_APK" 2>&1 | tail -5 | tee -a verification-reports/verification-report.txt; then
-                  echo "✅ Zipalign verification passed" | tee -a verification-reports/verification-report.txt
-                else
-                  echo "❌ Zipalign verification failed" | tee -a verification-reports/verification-report.txt
-                fi
-              else
-                echo "⚠️ zipalign not found, skipping zipalign check" | tee -a verification-reports/verification-report.txt
-              fi
+              echo "⚠️ zipalign not found, skipping zipalign check" | tee -a verification-reports/verification-report.txt
             fi
           else
             echo "⚠️ Universal APK not generated, skipping zipalign check" | tee -a verification-reports/verification-report.txt
