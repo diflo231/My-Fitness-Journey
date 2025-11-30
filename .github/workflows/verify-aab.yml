@@ -1,0 +1,203 @@
+name: Verify Android App Bundle
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  verify-aab:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build web app
+      run: npm run build
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 35
+
+    - name: Sync Capacitor
+      run: npx cap sync android
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+
+    - name: Restore signing keystore
+      if: ${{ env.KEYSTORE_BASE64 != '' }}
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        echo "$KEYSTORE_BASE64" | base64 --decode > my-fitness-journey-release-key.jks
+        cat > android/keystore.properties <<EOF
+        storeFile=$(pwd)/my-fitness-journey-release-key.jks
+        storePassword=$KEYSTORE_PASSWORD
+        keyAlias=$KEY_ALIAS
+        keyPassword=$KEY_PASSWORD
+        EOF
+
+    - name: Build Android AAB
+      run: cd android && ./gradlew bundleRelease
+
+    - name: Download bundletool
+      run: |
+        curl -L -o bundletool.jar https://github.com/google/bundletool/releases/download/1.17.2/bundletool-all-1.17.2.jar
+        echo "Bundletool 1.17.2 downloaded successfully"
+
+    - name: Run AAB verification
+      run: |
+        mkdir -p verification-reports
+
+        AAB_PATH="android/app/build/outputs/bundle/release/app-release.aab"
+
+        echo "========================================" | tee verification-reports/verification-report.txt
+        echo "AAB Verification Report" | tee -a verification-reports/verification-report.txt
+        echo "========================================" | tee -a verification-reports/verification-report.txt
+        echo "" | tee -a verification-reports/verification-report.txt
+
+        # Basic AAB info
+        echo "=== AAB File Info ===" | tee -a verification-reports/verification-report.txt
+        ls -lh "$AAB_PATH" | tee -a verification-reports/verification-report.txt
+        echo "" | tee -a verification-reports/verification-report.txt
+
+        # Validate AAB with bundletool
+        echo "=== Bundletool Validation ===" | tee -a verification-reports/verification-report.txt
+        if java -jar bundletool.jar validate --bundle="$AAB_PATH" 2>&1 | tee -a verification-reports/verification-report.txt; then
+          echo "✅ AAB validation passed" | tee -a verification-reports/verification-report.txt
+        else
+          echo "❌ AAB validation failed" | tee -a verification-reports/verification-report.txt
+          exit 1
+        fi
+        echo "" | tee -a verification-reports/verification-report.txt
+
+        # Extract and display manifest
+        echo "=== Extracting AndroidManifest.xml ===" | tee -a verification-reports/verification-report.txt
+        unzip -o "$AAB_PATH" -d aab-contents
+        if [ -f "aab-contents/base/manifest/AndroidManifest.xml" ]; then
+          # Manifest in AAB is in protocol buffer format, use bundletool to dump info
+          java -jar bundletool.jar dump manifest --bundle="$AAB_PATH" > verification-reports/AndroidManifest.xml 2>&1
+          echo "Manifest extracted to verification-reports/AndroidManifest.xml" | tee -a verification-reports/verification-report.txt
+        fi
+        echo "" | tee -a verification-reports/verification-report.txt
+
+        # ELF alignment checks for native libraries
+        echo "=== ELF Alignment Checks ===" | tee -a verification-reports/verification-report.txt
+        NATIVE_LIBS_FOUND=false
+        ELF_CHECK_PASSED=true
+
+        find aab-contents -name "*.so" -type f 2>/dev/null | while read -r so_file; do
+          NATIVE_LIBS_FOUND=true
+          echo "Checking: $so_file" | tee -a verification-reports/verification-report.txt
+
+          # Check ELF alignment using readelf
+          if command -v readelf &> /dev/null; then
+            ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -oP '0x[0-9a-fA-F]+' | head -1)
+            echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
+
+            # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
+            if [ -n "$ALIGNMENT" ]; then
+              ALIGN_DEC=$((ALIGNMENT))
+              if [ "$ALIGN_DEC" -ge 16384 ]; then
+                echo "  ✅ 16KB page alignment: OK" | tee -a verification-reports/verification-report.txt
+              else
+                echo "  ⚠️ 16KB page alignment: Not aligned (current: $ALIGN_DEC bytes)" | tee -a verification-reports/verification-report.txt
+              fi
+            fi
+          else
+            echo "  ⚠️ readelf not available, skipping ELF alignment check" | tee -a verification-reports/verification-report.txt
+          fi
+        done
+
+        if [ "$NATIVE_LIBS_FOUND" = false ]; then
+          echo "No native libraries (.so files) found in AAB" | tee -a verification-reports/verification-report.txt
+        fi
+        echo "" | tee -a verification-reports/verification-report.txt
+
+        # Zipalign validation (for APKs generated from AAB)
+        echo "=== Zipalign Validation ===" | tee -a verification-reports/verification-report.txt
+        echo "Generating APKs from AAB for zipalign check..." | tee -a verification-reports/verification-report.txt
+
+        java -jar bundletool.jar build-apks \
+          --bundle="$AAB_PATH" \
+          --output=verification-reports/app.apks \
+          --mode=universal 2>&1 | tee -a verification-reports/verification-report.txt
+
+        if [ -f "verification-reports/app.apks" ]; then
+          unzip -o verification-reports/app.apks -d verification-reports/apks
+          UNIVERSAL_APK="verification-reports/apks/universal.apk"
+
+          if [ -f "$UNIVERSAL_APK" ]; then
+            # Use Android SDK zipalign if available
+            if command -v zipalign &> /dev/null; then
+              if zipalign -c -v 4 "$UNIVERSAL_APK" 2>&1 | tail -5 | tee -a verification-reports/verification-report.txt; then
+                echo "✅ Zipalign verification passed" | tee -a verification-reports/verification-report.txt
+              else
+                echo "❌ Zipalign verification failed" | tee -a verification-reports/verification-report.txt
+              fi
+            else
+              # Try to find zipalign in Android SDK
+              ZIPALIGN_PATH=$(find "$ANDROID_HOME" -name "zipalign" -type f 2>/dev/null | head -1)
+              if [ -n "$ZIPALIGN_PATH" ]; then
+                if "$ZIPALIGN_PATH" -c -v 4 "$UNIVERSAL_APK" 2>&1 | tail -5 | tee -a verification-reports/verification-report.txt; then
+                  echo "✅ Zipalign verification passed" | tee -a verification-reports/verification-report.txt
+                else
+                  echo "❌ Zipalign verification failed" | tee -a verification-reports/verification-report.txt
+                fi
+              else
+                echo "⚠️ zipalign not found, skipping zipalign check" | tee -a verification-reports/verification-report.txt
+              fi
+            fi
+          else
+            echo "⚠️ Universal APK not generated, skipping zipalign check" | tee -a verification-reports/verification-report.txt
+          fi
+        else
+          echo "⚠️ Could not generate APKs from AAB, skipping zipalign check" | tee -a verification-reports/verification-report.txt
+        fi
+        echo "" | tee -a verification-reports/verification-report.txt
+
+        # Bundle contents summary
+        echo "=== AAB Contents Summary ===" | tee -a verification-reports/verification-report.txt
+        java -jar bundletool.jar dump resources --bundle="$AAB_PATH" 2>/dev/null | head -50 | tee -a verification-reports/verification-report.txt
+        echo "" | tee -a verification-reports/verification-report.txt
+
+        echo "========================================" | tee -a verification-reports/verification-report.txt
+        echo "Verification Complete" | tee -a verification-reports/verification-report.txt
+        echo "========================================" | tee -a verification-reports/verification-report.txt
+
+    - name: Upload verification reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: aab-verification-reports
+        path: verification-reports/
+        if-no-files-found: error
+
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release-aab
+        path: android/app/build/outputs/bundle/release/app-release.aab
+        if-no-files-found: error
