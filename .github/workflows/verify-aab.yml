@@ -66,7 +66,9 @@ jobs:
     - name: Download bundletool
       run: |
         curl -L -o bundletool.jar https://github.com/google/bundletool/releases/download/1.17.2/bundletool-all-1.17.2.jar
-        echo "Bundletool 1.17.2 downloaded successfully"
+        # Verify SHA256 checksum for bundletool 1.17.2
+        echo "2d4ad908faea64047c1cc9cb747e6aa667c6ab192e09607bd16b67246a8cd6ae  bundletool.jar" | sha256sum -c -
+        echo "Bundletool 1.17.2 downloaded and verified successfully"
 
     - name: Run AAB verification
       run: |
@@ -115,7 +117,7 @@ jobs:
 
             # Check ELF alignment using readelf
             if command -v readelf &> /dev/null; then
-              ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -o '0x[0-9a-fA-F]\+' | head -1)
+              ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -E -o '0x[0-9a-fA-F]+' | head -1)
               echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
 
               # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
