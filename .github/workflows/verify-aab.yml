@@ -53,6 +53,7 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
         echo "$KEYSTORE_BASE64" | base64 --decode > my-fitness-journey-release-key.jks
+        chmod 600 my-fitness-journey-release-key.jks
         cat > android/keystore.properties <<EOF
         storeFile=$(pwd)/my-fitness-journey-release-key.jks
         storePassword=$KEYSTORE_PASSWORD
@@ -117,7 +118,8 @@ jobs:
 
             # Check ELF alignment using readelf
             if command -v readelf &> /dev/null; then
-              ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -E -o '0x[0-9a-fA-F]+' | head -1)
+              # Extract the alignment value from the LOAD segment (last hex value on the line)
+              ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep "LOAD" | head -1 | awk '{print $NF}')
               echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
 
               # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
@@ -156,8 +158,9 @@ jobs:
             if command -v zipalign &> /dev/null; then
               ZIPALIGN_CMD="zipalign"
             else
-              # Try to find zipalign in Android SDK
-              ZIPALIGN_CMD=$(find "$ANDROID_HOME" -name "zipalign" -type f 2>/dev/null | head -1)
+              # Try to find zipalign in Android SDK (use ANDROID_SDK_ROOT or ANDROID_HOME)
+              SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+              ZIPALIGN_CMD=$(find "$SDK_ROOT" -name "zipalign" -type f 2>/dev/null | head -1)
             fi
 
             if [ -n "$ZIPALIGN_CMD" ]; then
