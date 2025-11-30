@@ -112,7 +112,7 @@ jobs:
         echo "=== ELF Alignment Checks ===" | tee -a verification-reports/verification-report.txt
 
         # Check for native libraries using process substitution
-        SO_COUNT=$(find aab-contents -name "*.so" -type f 2>/dev/null | wc -l)
+        SO_COUNT=$(find aab-contents -name "*.so" -type f -print0 2>/dev/null | tr -cd '\0' | wc -c)
         if [ "$SO_COUNT" -gt 0 ]; then
           while IFS= read -r -d '' so_file; do
             echo "Checking: $so_file" | tee -a verification-reports/verification-report.txt
@@ -124,9 +124,10 @@ jobs:
               echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
 
               # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
-              # Validate that ALIGNMENT is a hex number before arithmetic expansion
+              # Validate that ALIGNMENT is a hex number before conversion (strict regex validation)
               if [ -n "$ALIGNMENT" ] && echo "$ALIGNMENT" | grep -qE '^0x[0-9a-fA-F]+$'; then
-                ALIGN_DEC=$((ALIGNMENT))
+                # Use printf to safely convert hex to decimal
+                ALIGN_DEC=$(printf '%d' "$ALIGNMENT" 2>/dev/null) || ALIGN_DEC=0
                 if [ "$ALIGN_DEC" -ge 16384 ]; then
                   echo "  ✅ 16KB page alignment: OK" | tee -a verification-reports/verification-report.txt
                 else
@@ -172,10 +173,13 @@ jobs:
             fi
 
             if [ -n "$ZIPALIGN_CMD" ]; then
-              # Run zipalign and capture exit status using subshell to avoid set -e/+e
-              ZIPALIGN_OUTPUT=$("$ZIPALIGN_CMD" -c -v 4 "$UNIVERSAL_APK" 2>&1) && ZIPALIGN_EXIT_CODE=0 || ZIPALIGN_EXIT_CODE=$?
+              # Run zipalign in subshell and capture output and exit status separately
+              ZIPALIGN_OUTPUT=$(
+                "$ZIPALIGN_CMD" -c -v 4 "$UNIVERSAL_APK" 2>&1
+              ) || true
+              # Check verification result from output (zipalign -c prints "Verification successful" on success)
               echo "$ZIPALIGN_OUTPUT" | tail -5 | tee -a verification-reports/verification-report.txt
-              if [ "$ZIPALIGN_EXIT_CODE" -eq 0 ]; then
+              if echo "$ZIPALIGN_OUTPUT" | grep -q "Verification successful\|Verification succesful"; then
                 echo "✅ Zipalign verification passed" | tee -a verification-reports/verification-report.txt
               else
                 echo "❌ Zipalign verification failed" | tee -a verification-reports/verification-report.txt
