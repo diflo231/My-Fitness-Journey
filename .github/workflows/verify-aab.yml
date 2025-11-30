@@ -106,33 +106,32 @@ jobs:
 
         # ELF alignment checks for native libraries
         echo "=== ELF Alignment Checks ===" | tee -a verification-reports/verification-report.txt
-        NATIVE_LIBS_FOUND=false
-        ELF_CHECK_PASSED=true
 
-        find aab-contents -name "*.so" -type f 2>/dev/null | while read -r so_file; do
-          NATIVE_LIBS_FOUND=true
-          echo "Checking: $so_file" | tee -a verification-reports/verification-report.txt
+        # Count native libraries to avoid subshell variable scope issue
+        SO_FILES=$(find aab-contents -name "*.so" -type f 2>/dev/null)
+        if [ -n "$SO_FILES" ]; then
+          echo "$SO_FILES" | while read -r so_file; do
+            echo "Checking: $so_file" | tee -a verification-reports/verification-report.txt
 
-          # Check ELF alignment using readelf
-          if command -v readelf &> /dev/null; then
-            ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -oP '0x[0-9a-fA-F]+' | head -1)
-            echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
+            # Check ELF alignment using readelf
+            if command -v readelf &> /dev/null; then
+              ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -oP '0x[0-9a-fA-F]+' | head -1)
+              echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
 
-            # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
-            if [ -n "$ALIGNMENT" ]; then
-              ALIGN_DEC=$((ALIGNMENT))
-              if [ "$ALIGN_DEC" -ge 16384 ]; then
-                echo "  ✅ 16KB page alignment: OK" | tee -a verification-reports/verification-report.txt
-              else
-                echo "  ⚠️ 16KB page alignment: Not aligned (current: $ALIGN_DEC bytes)" | tee -a verification-reports/verification-report.txt
+              # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
+              if [ -n "$ALIGNMENT" ]; then
+                ALIGN_DEC=$((ALIGNMENT))
+                if [ "$ALIGN_DEC" -ge 16384 ]; then
+                  echo "  ✅ 16KB page alignment: OK" | tee -a verification-reports/verification-report.txt
+                else
+                  echo "  ⚠️ 16KB page alignment: Not aligned (current: $ALIGN_DEC bytes)" | tee -a verification-reports/verification-report.txt
+                fi
               fi
+            else
+              echo "  ⚠️ readelf not available, skipping ELF alignment check" | tee -a verification-reports/verification-report.txt
             fi
-          else
-            echo "  ⚠️ readelf not available, skipping ELF alignment check" | tee -a verification-reports/verification-report.txt
-          fi
-        done
-
-        if [ "$NATIVE_LIBS_FOUND" = false ]; then
+          done
+        else
           echo "No native libraries (.so files) found in AAB" | tee -a verification-reports/verification-report.txt
         fi
         echo "" | tee -a verification-reports/verification-report.txt
