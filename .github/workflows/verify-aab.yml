@@ -123,13 +123,16 @@ jobs:
               echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
 
               # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
-              if [ -n "$ALIGNMENT" ]; then
+              # Validate that ALIGNMENT is a hex number before arithmetic expansion
+              if [ -n "$ALIGNMENT" ] && echo "$ALIGNMENT" | grep -qE '^0x[0-9a-fA-F]+$'; then
                 ALIGN_DEC=$((ALIGNMENT))
                 if [ "$ALIGN_DEC" -ge 16384 ]; then
                   echo "  ✅ 16KB page alignment: OK" | tee -a verification-reports/verification-report.txt
                 else
                   echo "  ⚠️ 16KB page alignment: Not aligned (current: $ALIGN_DEC bytes)" | tee -a verification-reports/verification-report.txt
                 fi
+              else
+                echo "  ⚠️ Could not parse alignment value" | tee -a verification-reports/verification-report.txt
               fi
             else
               echo "  ⚠️ readelf not available, skipping ELF alignment check" | tee -a verification-reports/verification-report.txt
@@ -160,7 +163,11 @@ jobs:
             else
               # Try to find zipalign in Android SDK (use ANDROID_SDK_ROOT or ANDROID_HOME)
               SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-              ZIPALIGN_CMD=$(find "$SDK_ROOT" -name "zipalign" -type f 2>/dev/null | head -1)
+              if [ -n "$SDK_ROOT" ] && [ -d "$SDK_ROOT" ]; then
+                ZIPALIGN_CMD=$(find "$SDK_ROOT" -name "zipalign" -type f 2>/dev/null | head -1)
+              else
+                ZIPALIGN_CMD=""
+              fi
             fi
 
             if [ -n "$ZIPALIGN_CMD" ]; then
