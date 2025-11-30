@@ -45,7 +45,7 @@ jobs:
       run: chmod +x android/gradlew
 
     - name: Restore signing keystore
-      if: ${{ env.KEYSTORE_BASE64 != '' }}
+      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -115,7 +115,7 @@ jobs:
 
             # Check ELF alignment using readelf
             if command -v readelf &> /dev/null; then
-              ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -oP '0x[0-9a-fA-F]+' | head -1)
+              ALIGNMENT=$(readelf -l "$so_file" 2>/dev/null | grep -A1 "LOAD" | grep -o '0x[0-9a-fA-F]\+' | head -1)
               echo "  ELF Load Alignment: $ALIGNMENT" | tee -a verification-reports/verification-report.txt
 
               # Check if alignment is at least 16KB (0x4000) for Android 14+ compatibility
