@@ -60,6 +60,7 @@ jobs:
         keyAlias=$KEY_ALIAS
         keyPassword=$KEY_PASSWORD
         EOF
+        chmod 600 android/keystore.properties
 
     - name: Build Android AAB
       run: cd android && ./gradlew bundleRelease
@@ -171,11 +172,8 @@ jobs:
             fi
 
             if [ -n "$ZIPALIGN_CMD" ]; then
-              # Run zipalign and capture exit status properly
-              set +e
-              ZIPALIGN_OUTPUT=$("$ZIPALIGN_CMD" -c -v 4 "$UNIVERSAL_APK" 2>&1)
-              ZIPALIGN_EXIT_CODE=$?
-              set -e
+              # Run zipalign and capture exit status using subshell to avoid set -e/+e
+              ZIPALIGN_OUTPUT=$("$ZIPALIGN_CMD" -c -v 4 "$UNIVERSAL_APK" 2>&1) && ZIPALIGN_EXIT_CODE=0 || ZIPALIGN_EXIT_CODE=$?
               echo "$ZIPALIGN_OUTPUT" | tail -5 | tee -a verification-reports/verification-report.txt
               if [ "$ZIPALIGN_EXIT_CODE" -eq 0 ]; then
                 echo "✅ Zipalign verification passed" | tee -a verification-reports/verification-report.txt
