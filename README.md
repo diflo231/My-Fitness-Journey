@@ -87,7 +87,7 @@ export ANDROID_KEY_ALIAS=my-fitness-journey
 export ANDROID_KEY_PASSWORD=your_key_password
 ```
 
-Release AAB builds (`./gradlew bundleRelease`) require these environment variables. If they are not set, the release build fails by design.
+Release AAB builds (`./gradlew bundleRelease`) require `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`. If they are not set, the release build fails by design.
 
 #### CI/CD Build
 
