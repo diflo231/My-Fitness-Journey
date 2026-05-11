@@ -1,25 +1,27 @@
 {
   "name": "my-fitness-journey",
   "version": "1.0.0",
-  "description": "My Fitness Journey - A fitness tracking app",
-  "main": "index.js",
+  "description": "A personal fitness journey tracking application",
+  "main": "src/index.js",
   "scripts": {
-    "build": "echo 'Building web app...' && mkdir -p www && cp index.html www/",
-    "test": "echo 'No tests specified'"
+    "build": "rm -rf dist && mkdir -p dist/src && cp -r public/. dist/ && cp -r src/. dist/src/",
+    "start": "npx serve dist",
+    "test": "echo \"No tests configured yet\" && exit 0"
   },
   "keywords": [
     "fitness",
     "health",
-    "tracking"
+    "workout",
+    "tracker"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@capacitor/android": "^6.0.0",
-    "@capacitor/cli": "^6.0.0",
     "@capacitor/core": "^6.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@capacitor/cli": "^6.0.0",
+    "serve": "^14.2.0"
   }
 }

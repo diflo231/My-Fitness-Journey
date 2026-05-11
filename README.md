@@ -1,74 +1,119 @@
 # My Fitness Journey
 
-A fitness tracking mobile application built with Capacitor.
+A personal fitness journey tracking application built with JavaScript and Capacitor for mobile deployment.
 
-## Building the Android App Bundle (AAB)
+## Features
+
+- Track your workouts
+- Monitor days active
+- Set and achieve fitness goals
+- Mobile-ready with Capacitor
+
+## Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- Java JDK 17
-- Android SDK
 
-### Setup Instructions
+- Node.js 20+
+- npm
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+### Installation
 
-2. **Build the web app:**
-   ```bash
-   npm run build
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/diflo231/My-Fitness-Journey.git
+cd My-Fitness-Journey
 
-3. **Sync Capacitor with Android:**
-   ```bash
-   npx cap sync android
-   ```
+# Install dependencies
+npm install
 
-4. **Build the AAB file:**
-   ```bash
-   cd android
-   chmod +x gradlew
-   ./gradlew bundleRelease
-   ```
+# Build the app
+npm run build
+```
 
-The AAB file will be generated at:
-`android/app/build/outputs/bundle/release/app-release.aab`
+### Running Locally
 
-### Automated Build with GitHub Actions
+```bash
+npm start
+```
 
-The repository includes a GitHub Actions workflow (`.github/workflows/main.yml`) that automatically builds the AAB file on every push to main/master branches. The built AAB is available as a downloadable artifact from the Actions tab.
+### Building for Android
 
-### Signing the App (for Production)
+```bash
+# Add Android platform
+npx cap add android
 
-For production releases, you'll need to sign the AAB:
+# Update Android platform
+npx cap update android
 
-1. **Generate a keystore:**
-   ```bash
-   keytool -genkey -v -keystore my-fitness-journey-release-key.jks \
-     -keyalg RSA -keysize 2048 -validity 10000 \
-     -alias my-fitness-journey
-   ```
+# Sync web assets to Android
+npx cap sync android
+```
 
-2. **Configure signing in `android/app/build.gradle`:**
-   Add the signing configuration in the `android` block:
-   ```gradle
-   signingConfigs {
-       release {
-           storeFile file("../my-fitness-journey-release-key.jks")
-           storePassword "YOUR_KEYSTORE_PASSWORD"
-           keyAlias "my-fitness-journey"
-           keyPassword "YOUR_KEY_PASSWORD"
-       }
-   }
-   buildTypes {
-       release {
-           signingConfig signingConfigs.release
-           minifyEnabled false
-           proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-       }
-   }
-   ```
+### Building Android App Bundle (AAB)
 
-3. **Important:** Never commit your keystore file or passwords to version control!
+The project is configured to build an Android App Bundle (`.aab`) for distribution on Google Play Store.
+
+#### Development/Debug Build
+
+For local development, build and sync web assets:
+
+```bash
+# Build the web app
+npm run build
+
+# Sync with Android
+npx cap sync android
+
+# Build a debug APK
+cd android && ./gradlew assembleDebug
+```
+
+The debug APK will be available at: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+#### Production/Release Build
+
+For production builds, generate a signing key first:
+
+```bash
+keytool -genkey -v -keystore my-fitness-journey-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-fitness-journey
+```
+
+Then configure the following environment variables before building:
+
+```bash
+export ANDROID_KEYSTORE_PATH=/path/to/my-fitness-journey-release-key.jks
+export ANDROID_KEYSTORE_PASSWORD=your_keystore_password
+export ANDROID_KEY_ALIAS=my-fitness-journey
+export ANDROID_KEY_PASSWORD=your_key_password
+```
+
+Release AAB builds (`./gradlew bundleRelease`) require `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`.
+If these variables are not set, the release build fails by design.
+
+#### CI/CD Build
+
+The GitHub Actions workflow automatically builds the AAB on push to main/master. For production releases in CI/CD, add the keystore and credentials as GitHub Secrets:
+- `ANDROID_KEYSTORE_PATH`: Path to the keystore file
+- `ANDROID_KEYSTORE_PASSWORD`: Keystore password
+- `ANDROID_KEY_ALIAS`: Key alias
+- `ANDROID_KEY_PASSWORD`: Key password
+
+## Project Structure
+
+```
+My-Fitness-Journey/
+├── android/          # Android native project
+│   ├── app/          # Android app module
+│   └── gradlew       # Gradle wrapper
+├── public/           # Static assets
+│   ├── index.html    # Main HTML file
+│   └── styles.css    # Application styles
+├── src/              # Source files
+│   └── index.js      # Main JavaScript
+├── package.json      # Project configuration
+└── capacitor.config.json  # Capacitor configuration
+```
+
+## License
+
+MIT
