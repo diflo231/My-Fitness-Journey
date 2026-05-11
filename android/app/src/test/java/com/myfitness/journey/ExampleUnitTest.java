@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.myfitness.journey;
 
 import static org.junit.Assert.*;
 
