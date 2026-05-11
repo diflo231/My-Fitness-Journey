@@ -4,7 +4,7 @@
   "description": "A personal fitness journey tracking application",
   "main": "src/index.js",
   "scripts": {
-    "build": "cp -r src dist && cp -r public/* dist/",
+    "build": "rm -rf dist && mkdir -p dist/src && cp -r public/* dist/ && cp src/index.js dist/src/index.js",
     "start": "npx serve dist",
     "test": "echo \"No tests configured yet\" && exit 0"
   },

@@ -55,7 +55,7 @@ The project is configured to build an Android App Bundle (`.aab`) for distributi
 
 #### Development/Debug Build
 
-For local development, the app uses the debug keystore by default:
+For local development, build and sync web assets:
 
 ```bash
 # Build the web app
@@ -64,11 +64,11 @@ npm run build
 # Sync with Android
 npx cap sync android
 
-# Build the AAB
-cd android && ./gradlew bundleRelease
+# Build a debug APK
+cd android && ./gradlew assembleDebug
 ```
 
-The AAB will be available at: `android/app/build/outputs/bundle/release/app-release.aab`
+The debug APK will be available at: `android/app/build/outputs/apk/debug/app-debug.apk`
 
 #### Production/Release Build
 
@@ -86,6 +86,8 @@ export ANDROID_KEYSTORE_PASSWORD=your_keystore_password
 export ANDROID_KEY_ALIAS=my-fitness-journey
 export ANDROID_KEY_PASSWORD=your_key_password
 ```
+
+Release AAB builds (`./gradlew bundleRelease`) require these environment variables. If they are not set, the release build fails by design.
 
 #### CI/CD Build
 
